@@ -62,6 +62,26 @@ fastify.decorate('authenticate', async function (request, reply) {
   }
 });
 
+// Health check route
+fastify.get('/health', async (_, reply) => {
+  try {
+    const db = fastify.mongo.db;
+    if (!db) {
+      return reply
+        .code(500)
+        .send({ status: 'error', message: 'Database not initialized' });
+    }
+
+    await db.command({ ping: 1 });
+
+    return reply.send({ status: 'ok', message: 'Server is healthy' });
+  } catch (error) {
+    return reply
+      .code(500)
+      .send({ status: 'error', message: 'Database connection error' });
+  }
+});
+
 // Register route
 fastify.post('/register', async (request, reply) => {
   const { username, password } = request.body as {
