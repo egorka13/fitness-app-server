@@ -5,6 +5,7 @@ import Fastify, {
 } from 'fastify';
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
+import cors from '@fastify/cors';
 import fastifyJWT from '@fastify/jwt';
 import fastifyMongo from '@fastify/mongodb';
 
@@ -16,6 +17,14 @@ if (!process.env.MONGO_URI) {
   console.error('MONGO_URI is not defined in .env');
   process.exit(1);
 }
+
+// Разрешаем CORS для всех доменов (по умолчанию)
+fastify.register(cors, {
+  origin: '*', // Можно указать конкретный URL, например "http://localhost:5173"
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Разрешенные HTTP-методы
+  allowedHeaders: ['Content-Type', 'Authorization'], // Разрешенные заголовки
+  credentials: true, // Если нужен доступ к HTTP cookies
+});
 
 // MongoDB connection
 fastify
