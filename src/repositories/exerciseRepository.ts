@@ -1,6 +1,8 @@
 import { db } from '../db/knex';
 import { Exercise } from '../models/Exercise';
 
+const EXERCISES_TABLE = 'exercises';
+
 /**
  * Exercise Repository
  * This module provides functions to interact with the exercises table in the database.
@@ -15,7 +17,7 @@ export const exerciseRepository = {
    * @returns The created exercise record.
    */
   async createExercise(data: Omit<Exercise, 'id'>, trx = db) {
-    const [created] = await trx('exercises').insert(data).returning('*');
+    const [created] = await trx(EXERCISES_TABLE).insert(data).returning('*');
     return created;
   },
 
@@ -25,10 +27,16 @@ export const exerciseRepository = {
    * @returns A promise that resolves to an array of all exercises.
    */
   async getAllExercises(): Promise<Exercise[]> {
-    return db<Exercise>('exercises').select('*');
+    return db<Exercise>(EXERCISES_TABLE).select('*');
   },
 
+  /**
+   * Retrieves a specific exercise by its ID.
+   *
+   * @param id - The ID of the exercise to retrieve.
+   * @returns
+   */
   async getById(id: number): Promise<Exercise | undefined> {
-    return db<Exercise>('exercises').where({ id }).first();
+    return db<Exercise>(EXERCISES_TABLE).where({ id }).first();
   },
 };

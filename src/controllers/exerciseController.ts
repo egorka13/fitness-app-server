@@ -35,11 +35,26 @@ export const exerciseController = {
     reply.send(exercise);
   },
 
+  /**
+   * Gets all exercises.
+   *
+   * @param req - FastifyRequest to handle the request.
+   * @param reply - FastifyReply used to send the created exercise as a response.
+   * @returns Sends an array of all exercises in the response.
+   */
   async getAllExercises(req: FastifyRequest, reply: FastifyReply) {
     const exercises = await exerciseService.getAllExercises();
     reply.send(exercises);
   },
 
+  /**
+   * Gets a specific exercise by its ID.
+   *
+   * @param req - FastifyRequest to handle the request.
+   * @param reply - FastifyReply used to send the created exercise as a response.
+   * @returns Sends the exercise object if found, or an error if not found.
+   * @throws 400 if the ID is invalid, 404 if the exercise is not found.
+   */
   async getById(
     req: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply

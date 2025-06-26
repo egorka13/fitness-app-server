@@ -18,10 +18,18 @@ export const exerciseService = {
     });
   },
 
+  /**
+   * Retrieves all exercises from the database.
+   * @returns An array of all exercises.
+   */
   async getAllExercises() {
     return exerciseRepository.getAllExercises();
   },
 
+  /**
+   * Gets a specific exercise by its ID.
+   * @param id - The ID of the exercise to retrieve.
+   */
   async getById(id: number) {
     return exerciseRepository.getById(id);
   },
