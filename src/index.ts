@@ -1,163 +1,48 @@
-import Fastify, {
-  FastifyInstance,
-  FastifyRequest,
-  FastifyReply,
-} from 'fastify';
-import dotenv from 'dotenv';
-import bcrypt from 'bcryptjs';
+import Fastify, { FastifyReply, FastifyRequest } from 'fastify';
+import jwt from '@fastify/jwt';
 import cors from '@fastify/cors';
-import fastifyJWT from '@fastify/jwt';
-import fastifyMongo from '@fastify/mongodb';
+import dotenv from 'dotenv';
+
+import { exercisesRoutes } from './routes/exercises';
 
 dotenv.config();
 
-const fastify: FastifyInstance = Fastify({ logger: true });
+const fastify = Fastify();
 
-if (!process.env.MONGO_URI) {
-  console.error('MONGO_URI is not defined in .env');
-  process.exit(1);
-}
-
-// Разрешаем CORS для всех доменов (по умолчанию)
-fastify.register(cors, {
-  origin: '*', // Можно указать конкретный URL, например "http://localhost:5173"
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Разрешенные HTTP-методы
-  allowedHeaders: ['Content-Type', 'Authorization'], // Разрешенные заголовки
-  credentials: true, // Если нужен доступ к HTTP cookies
+fastify.register(jwt, {
+  secret: process.env.SUPABASE_JWT || '',
 });
 
-// MongoDB connection
-fastify
-  .register(fastifyMongo, {
-    forceClose: true,
-    url: process.env.MONGO_URI as string,
-  })
-  .after(async () => {
-    try {
-      const db = fastify.mongo.db;
-      if (!db) {
-        fastify.log.error('MongoDB client is not initialized!');
-        process.exit(1);
-      } else {
-        fastify.log.info('MongoDB connected successfully!');
-      }
-    } catch (err) {
-      fastify.log.error('Error connecting to MongoDB', err);
-      process.exit(1);
-    }
-  });
-
-// Register JWT
-fastify.register(fastifyJWT, {
-  secret: process.env.JWT_SECRET as string,
-});
-
-// Extend Fastify types
 declare module 'fastify' {
-  interface FastifyInstance {
+  export interface FastifyInstance {
     authenticate: (
-      request: FastifyRequest,
-      reply: FastifyReply
+      request: FastifyRequest<any>,
+      reply: FastifyReply<any>
     ) => Promise<void>;
   }
 }
 
-// Authentication middleware
-fastify.decorate('authenticate', async function (request, reply) {
-  try {
-    await request.jwtVerify();
-  } catch (err) {
-    reply.send(err);
-  }
-});
-
-// Health check route
-fastify.get('/health', async (_, reply) => {
-  try {
-    const db = fastify.mongo.db;
-    if (!db) {
-      return reply
-        .code(500)
-        .send({ status: 'error', message: 'Database not initialized' });
+fastify.decorate(
+  'authenticate',
+  async function (request: FastifyRequest, reply: FastifyReply) {
+    try {
+      await request.jwtVerify();
+    } catch (err) {
+      reply.status(401).send({ error: 'Unauthorized' });
     }
-
-    await db.command({ ping: 1 });
-
-    return reply.send({ status: 'ok', message: 'Server is healthy' });
-  } catch (error) {
-    return reply
-      .code(500)
-      .send({ status: 'error', message: 'Database connection error' });
-  }
-});
-
-// Register route
-fastify.post('/register', async (request, reply) => {
-  const { username, password } = request.body as {
-    username: string;
-    password: string;
-  };
-
-  const users = fastify.mongo.db?.collection('users');
-
-  if (!users)
-    return reply.code(500).send({ error: 'Database not initialized' });
-
-  const existingUser = await users.findOne({ username });
-  if (existingUser)
-    return reply.code(400).send({ error: 'User already exists' });
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-  await users.insertOne({ username, password: hashedPassword });
-
-  reply.send({ message: 'User registered successfully' });
-});
-
-// Login route
-fastify.post('/login', async (request: FastifyRequest, reply: FastifyReply) => {
-  const { username, password } = request.body as {
-    username: string;
-    password: string;
-  };
-  const users = fastify.mongo.db?.collection('users');
-
-  if (!users)
-    return reply.code(500).send({ error: 'Database not initialized' });
-
-  const user = await users.findOne({ username });
-  if (!user || !(await bcrypt.compare(password, user.password))) {
-    return reply.code(400).send({ error: 'Invalid credentials' });
-  }
-
-  const token = fastify.jwt.sign({ username });
-  reply.send({ token });
-});
-
-// Protected route
-fastify.get(
-  '/protected',
-  { preHandler: [fastify.authenticate] },
-  async (request, reply) => {
-    return { message: 'This is a protected route', user: request.user };
   }
 );
 
-fastify.get('/test-db', async (request, reply) => {
-  const users = fastify.mongo.db?.collection('users');
-  const count = await users?.countDocuments();
-  return { message: 'Database connected!', userCount: count };
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
+
+fastify.register(cors, {
+  origin: allowedOrigins,
+  methods: ['GET', 'POST', 'PUT'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true, // Если нужен доступ к HTTP cookies
 });
 
-fastify.get('/test-db2', async (request, reply) => {
-  try {
-    const users = fastify.mongo.db?.collection('users');
-    const count = await users?.countDocuments();
-    return { message: 'Database connected!', userCount: count };
-  } catch (error) {
-    console.error('Error accessing MongoDB:', error);
-    return reply.code(500).send({ error: 'Database not initialized' });
-  }
-});
+fastify.register(exercisesRoutes);
 
 // Start server
 const start = async () => {
