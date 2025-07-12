@@ -1,4 +1,6 @@
+import { ExerciseSet, ExerciseSetMerged } from '../models/ExerciseSet';
 import { exerciseSetsRepository } from '../repositories/exerciseSetsRepository';
+import { mergeSetsByDayWeightRepeats } from '../utils/mergeSetsByDayWeightRepeats';
 
 /**
  * Service object for managing exercise sets.
@@ -10,8 +12,17 @@ export const exerciseSetsService = {
    * @param id - The ID of the exercise to retrieve sets for.
    * @param userId - The ID of the user to filter sets by.
    */
-  async getSetsByExerciseId(id: number, userId: string) {
-    return exerciseSetsRepository.getSetsByExerciseId(id, userId);
+  async getSetsByExerciseId(
+    id: number,
+    userId: string
+  ): Promise<ExerciseSetMerged[] | undefined> {
+    const sets = await exerciseSetsRepository.getSetsByExerciseId(id, userId);
+
+    if (sets) {
+      return mergeSetsByDayWeightRepeats(sets);
+    }
+
+    return sets;
   },
 
   /**
@@ -25,7 +36,7 @@ export const exerciseSetsService = {
     id: number,
     userId: string,
     data: { repeats: number; weight: number; createdAt?: number }
-  ) {
+  ): Promise<ExerciseSet[] | undefined> {
     return exerciseSetsRepository.createSetByExerciseId(id, userId, data);
   },
 };

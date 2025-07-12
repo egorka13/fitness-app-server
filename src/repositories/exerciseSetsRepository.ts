@@ -1,5 +1,5 @@
 import { db } from '../db/knex';
-import { Exercise } from '../models/Exercise';
+import { ExerciseSet } from '../models/ExerciseSet';
 
 const EXERCISE_SETS_TABLE = 'exercise_sets';
 
@@ -19,8 +19,8 @@ export const exerciseSetsRepository = {
   async getSetsByExerciseId(
     id: number,
     userId: string
-  ): Promise<Exercise[] | undefined> {
-    return db<Exercise>(EXERCISE_SETS_TABLE)
+  ): Promise<ExerciseSet[] | undefined> {
+    return db<ExerciseSet>(EXERCISE_SETS_TABLE)
       .where('exerciseId', id)
       .where('userId', userId)
       .orderBy('createdAt', 'desc');
@@ -38,13 +38,13 @@ export const exerciseSetsRepository = {
     id: number,
     userId: string,
     data: { repeats: number; weight: number; createdAt?: number }
-  ): Promise<Exercise[] | undefined> {
-    return db('exercise_sets')
+  ): Promise<ExerciseSet[] | undefined> {
+    return db<ExerciseSet>('exercise_sets')
       .insert({
         exerciseId: id,
         userId: userId,
         reps: data.repeats,
-        weight: data.weight,
+        weight: String(data.weight),
         createdAt: data.createdAt
           ? new Date(data.createdAt).toISOString()
           : new Date().toISOString(),
